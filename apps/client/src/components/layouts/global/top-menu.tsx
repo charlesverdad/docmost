@@ -68,6 +68,7 @@ export default function TopMenu() {
         >
           {t("Workspace settings")}
         </Menu.Item>
+        
 
         <Menu.Item
           component={Link}

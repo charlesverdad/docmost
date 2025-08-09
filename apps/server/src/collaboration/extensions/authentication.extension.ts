@@ -13,6 +13,7 @@ import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 import { SpaceRole } from '../../common/helpers/types/permission';
 import { getPageId } from '../collaboration.util';
 import { JwtCollabPayload, JwtType } from '../../core/auth/dto/jwt-payload';
+import cookie from 'cookie';
 
 @Injectable()
 export class AuthenticationExtension implements Extension {
@@ -26,8 +27,8 @@ export class AuthenticationExtension implements Extension {
   ) {}
 
   async onAuthenticate(data: onAuthenticatePayload) {
-    const { documentName, token } = data;
-    const pageId = getPageId(documentName);
+    const cookies = cookie.parse(data.requestHeaders['cookie'] ?? '');
+    const token = cookies['authToken'];
 
     let jwtPayload: JwtCollabPayload;
 
@@ -36,6 +37,10 @@ export class AuthenticationExtension implements Extension {
     } catch (error) {
       throw new UnauthorizedException('Invalid collab token');
     }
+
+    const { documentName } = data;
+
+    const pageId = getPageId(documentName);
 
     const userId = jwtPayload.sub;
     const workspaceId = jwtPayload.workspaceId;

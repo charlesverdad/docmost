@@ -11,7 +11,11 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
 
-export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+export type Int8 = ColumnType<
+  string,
+  bigint | number | string,
+  bigint | number | string
+>;
 
 export type Json = JsonValue;
 
@@ -309,6 +313,7 @@ export interface WorkspaceInvitations {
 
 export interface Workspaces {
   billingEmail: string | null;
+  approvedDomains: Generated<string[] | null>;
   createdAt: Generated<Timestamp>;
   customDomain: string | null;
   defaultRole: Generated<string>;
@@ -328,6 +333,13 @@ export interface Workspaces {
   status: string | null;
   stripeCustomerId: string | null;
   trialEndAt: Timestamp | null;
+  // OIDC settings
+  oidcEnabled: boolean;
+  oidcClientId: string | null;
+  oidcClientSecret: string | null;
+  oidcIssuerUrl: string | null;
+  oidcJitEnabled: boolean;
+  oidcButtonName: string | null;
   updatedAt: Generated<Timestamp>;
 }
 

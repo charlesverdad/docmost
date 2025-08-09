@@ -115,6 +115,7 @@ export class UserRepo {
       locale: 'en-US',
       role: insertableUser?.role,
       lastLoginAt: new Date(),
+      workspaceId: insertableUser.workspaceId,
     };
 
     const db = dbOrTx(this.db, trx);

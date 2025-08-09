@@ -79,6 +79,7 @@ export default function useAuth() {
       }
     } catch (err) {
       setIsLoading(false);
+
       notifications.show({
         message: err.response?.data.message,
         color: "red",
@@ -136,6 +137,7 @@ export default function useAuth() {
       }
     } catch (err) {
       setIsLoading(false);
+
       notifications.show({
         message: err.response?.data.message,
         color: "red",

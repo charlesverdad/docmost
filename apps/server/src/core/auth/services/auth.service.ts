@@ -29,6 +29,16 @@ import { InjectKysely } from 'nestjs-kysely';
 import { executeTx } from '@docmost/db/utils';
 import { VerifyUserTokenDto } from '../dto/verify-user-token.dto';
 import { DomainService } from '../../../integrations/environment/domain.service';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
+import { WorkspaceService } from '../../workspace/services/workspace.service';
+import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
+import { EnvironmentService } from '../../../integrations/environment/environment.service';
+import { FastifyRequest } from 'fastify';
+import { Issuer } from 'openid-client';
+import { z } from 'zod';
+import { UserRole } from '../../../common/helpers/types/permission';
+import { UpdateOidcConfigDto } from '../dto/update-oidc.dto';
+import { OidcConfigDto } from '../dto/oidc-config.dto';
 
 @Injectable()
 export class AuthService {
@@ -39,8 +49,143 @@ export class AuthService {
     private userTokenRepo: UserTokenRepo,
     private mailService: MailService,
     private domainService: DomainService,
+    private workspaceRepo: WorkspaceRepo,
+    private workspaceService: WorkspaceService,
+    private groupUserRepo: GroupUserRepo,
+    private environmentService: EnvironmentService,
     @InjectKysely() private readonly db: KyselyDB,
   ) {}
+
+  async updateApprovedDomains(
+    domains: string[],
+    workspaceId: string,
+  ): Promise<string[]> {
+    await this.workspaceRepo.updateWorkspace(
+      { approvedDomains: domains },
+      workspaceId,
+    );
+
+    return domains;
+  }
+
+  async updateOidcConfig(
+    dto: UpdateOidcConfigDto,
+    workspaceId: string,
+  ): Promise<OidcConfigDto> {
+    const workspace = await this.workspaceRepo.findById(workspaceId);
+
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+
+    const updateData: Partial<Workspace> = {};
+
+    if (dto.enabled !== undefined) {
+      updateData.oidcEnabled = dto.enabled;
+    }
+
+    if (dto.issuerUrl) {
+      updateData.oidcIssuerUrl = dto.issuerUrl;
+    }
+
+    if (dto.clientId) {
+      updateData.oidcClientId = dto.clientId;
+    }
+
+    if (dto.clientSecret) {
+      updateData.oidcClientSecret = dto.clientSecret;
+    }
+
+    if (dto.buttonName) {
+      updateData.oidcButtonName = dto.buttonName;
+    }
+
+    if (dto.jitEnabled !== undefined) {
+      updateData.oidcJitEnabled = dto.jitEnabled;
+    }
+
+    await this.workspaceRepo.updateWorkspace(updateData, workspaceId);
+
+    const updatedWorkspace = await this.workspaceRepo.findById(workspaceId);
+
+    return {
+      enabled: updatedWorkspace.oidcEnabled,
+      issuerUrl: updatedWorkspace.oidcIssuerUrl,
+      clientId: updatedWorkspace.oidcClientId,
+      buttonName: updatedWorkspace.oidcButtonName,
+      jitEnabled: updatedWorkspace.oidcJitEnabled,
+    };
+  }
+
+  async oidcLogin(req: FastifyRequest) {
+    const querySchema = z.object({
+      code: z.string(),
+      state: z.string(),
+    });
+
+    const { data: query } = querySchema.safeParse(req.query);
+
+    if (!query) {
+      throw new UnauthorizedException();
+    }
+
+    const workspace = await this.workspaceRepo.findById(query.state);
+
+    if (
+      !workspace ||
+      !workspace.oidcIssuerUrl ||
+      !workspace.oidcClientId ||
+      !workspace.oidcClientSecret
+    ) {
+      throw new UnauthorizedException();
+    }
+
+    const issuer = await Issuer.discover(workspace.oidcIssuerUrl);
+    const client = new issuer.Client({
+      client_id: workspace.oidcClientId,
+      client_secret: workspace.oidcClientSecret,
+    });
+
+    const redirectUri = `${this.environmentService.getAppUrl()}/api/auth/cb`;
+
+    const params = client.callbackParams(req.raw);
+    const tokenSet = await client.callback(redirectUri, params, {
+      state: workspace.id,
+    });
+
+    const name = tokenSet.claims().name;
+    const email = tokenSet.claims().email;
+
+    if (!email) {
+      throw new UnauthorizedException();
+    }
+
+    const existing = await this.userRepo.findByEmail(email, workspace.id);
+
+    if (!existing) {
+      if (
+        workspace.oidcJitEnabled &&
+        workspace.approvedDomains?.includes(email.split('@')[1])
+      ) {
+        const user = await this.userRepo.insertUser({
+          name,
+          email,
+          role: UserRole.MEMBER,
+          workspaceId: workspace.id,
+          emailVerifiedAt: new Date(),
+        });
+
+        await this.workspaceService.addUserToWorkspace(user.id, workspace.id);
+        await this.groupUserRepo.addUserToDefaultGroup(user.id, workspace.id);
+
+        return this.tokenService.generateAccessToken(user);
+      }
+
+      throw new UnauthorizedException();
+    }
+
+    return this.tokenService.generateAccessToken(existing);
+  }
 
   async login(loginDto: LoginDto, workspaceId: string) {
     const user = await this.userRepo.findByEmail(loginDto.email, workspaceId, {
@@ -134,7 +279,9 @@ export class AuthService {
 
     const token = nanoIdGen(16);
 
-    const resetLink = `${this.domainService.getUrl(workspace.hostname)}/password-reset?token=${token}`;
+    const resetLink = `${this.domainService.getUrl(
+      workspace.hostname,
+    )}/password-reset?token=${token}`;
 
     await this.userTokenRepo.insertUserToken({
       token: token,
@@ -206,7 +353,6 @@ export class AuthService {
       template: emailTemplate,
     });
 
-    // Check if user has MFA enabled or workspace enforces MFA
     const userHasMfa = user?.['mfa']?.isEnabled || false;
     const workspaceEnforcesMfa = workspace.enforceMfa || false;
 
@@ -246,3 +392,4 @@ export class AuthService {
     return { token };
   }
 }
+
