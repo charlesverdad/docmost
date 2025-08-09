@@ -6,6 +6,7 @@ import Page from "@/pages/page/page";
 import AccountSettings from "@/pages/settings/account/account-settings";
 import WorkspaceMembers from "@/pages/settings/workspace/workspace-members";
 import WorkspaceSettings from "@/pages/settings/workspace/workspace-settings";
+import WorkspaceSecuritySettings from "@/pages/settings/workspace/workspace-security";
 import Groups from "@/pages/settings/group/groups";
 import GroupInfo from "./pages/settings/group/group-info";
 import Spaces from "@/pages/settings/space/spaces.tsx";
@@ -102,7 +103,7 @@ export default function App() {
             <Route path={"groups/:groupId"} element={<GroupInfo />} />
             <Route path={"spaces"} element={<Spaces />} />
             <Route path={"sharing"} element={<Shares />} />
-            <Route path={"security"} element={<Security />} />
+            <Route path={"security"} element={<WorkspaceSecuritySettings />} />
             {!isCloud() && <Route path={"license"} element={<License />} />}
             {isCloud() && <Route path={"billing"} element={<Billing />} />}
           </Route>

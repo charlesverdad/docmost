@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -23,7 +24,7 @@ export class UserController {
   ) {}
 
   @HttpCode(HttpStatus.OK)
-  @Post('me')
+  @Get('me')
   async getUserInfo(
     @AuthUser() authUser: User,
     @AuthWorkspace() workspace: Workspace,

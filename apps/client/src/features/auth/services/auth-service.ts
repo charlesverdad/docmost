@@ -21,7 +21,7 @@ export async function logout(): Promise<void> {
 }
 
 export async function changePassword(
-  data: IChangePassword,
+  data: IChangePassword
 ): Promise<IChangePassword> {
   const req = await api.post<IChangePassword>("/auth/change-password", data);
   return req.data;

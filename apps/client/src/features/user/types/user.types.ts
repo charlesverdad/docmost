@@ -4,7 +4,6 @@ export interface IUser {
   id: string;
   name: string;
   email: string;
-  emailVerifiedAt: Date;
   avatarUrl: string;
   timezone: string;
   settings: IUserSettings;
@@ -18,6 +17,7 @@ export interface IUser {
   workspaceId: string;
   deactivatedAt: Date;
   deletedAt: Date;
+  // These are only in the frontend and not returned from the backend
   fullPageWidth: boolean; // used for update
   pageEditMode: string; // used for update
 }

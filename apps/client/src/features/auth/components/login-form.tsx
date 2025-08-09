@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { useForm, zodResolver } from "@mantine/form";
 import useAuth from "@/features/auth/hooks/use-auth";
-import { ILogin } from "@/features/auth/types/auth.types";
+import { ILogin, IOIDCConfig } from "@/features/auth/types/auth.types";
 import {
   Container,
   Title,
@@ -20,7 +20,8 @@ import { useTranslation } from "react-i18next";
 import SsoLogin from "@/ee/components/sso-login.tsx";
 import { useWorkspacePublicDataQuery } from "@/features/workspace/queries/workspace-query.ts";
 import { Error404 } from "@/components/ui/error-404.tsx";
-import React from "react";
+import React, { useEffect } from "react";
+import api from "@/lib/api-client";
 
 const formSchema = z.object({
   email: z
@@ -33,6 +34,10 @@ const formSchema = z.object({
 export function LoginForm() {
   const { t } = useTranslation();
   const { signIn, isLoading } = useAuth();
+
+  const [buttonName, setButtonName] = React.useState<string>("Login with OIDC");
+  const [oidcEnabled, setOidcEnabled] = React.useState<boolean>(false);
+
   useRedirectIfAuthenticated();
   const {
     data,
@@ -40,6 +45,20 @@ export function LoginForm() {
     isError,
     error,
   } = useWorkspacePublicDataQuery();
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await api.get<IOIDCConfig>("/auth/oidc-public-config");
+        setButtonName(response.data.buttonName);
+        setOidcEnabled(response.data.enabled);
+      } catch {
+        // ignore
+      }
+    };
+
+    fetchConfig();
+  }, []);
 
   const form = useForm<ILogin>({
     validate: zodResolver(formSchema),
@@ -53,8 +72,12 @@ export function LoginForm() {
     await signIn(data);
   }
 
+  function loginWithOAuth() {
+    window.location.href = "/api/auth/oauth-redirect";
+  }
+
   if (isDataLoading) {
-   return null;
+    return null;
   }
 
   if (isError && error?.["response"]?.status === 404) {
@@ -104,6 +127,17 @@ export function LoginForm() {
               <Button type="submit" fullWidth mt="md" loading={isLoading}>
                 {t("Sign In")}
               </Button>
+
+              {oidcEnabled && (
+                <Button
+                  onClick={loginWithOAuth}
+                  hidden={!oidcEnabled}
+                  fullWidth
+                  mt="sm"
+                >
+                  {t("Login with {{buttonName}}", { buttonName })}
+                </Button>
+              )}
             </form>
           </>
         )}

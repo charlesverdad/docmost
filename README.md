@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> This is an actively maintained fork of [Docmost](https://github.com/docmost/docmost/) with the goal of upstreaming changes regularly.
+> A built docker image is made available on [DockerHub](https://hub.docker.com/r/will2hew/docmost).
+
 <div align="center">
     <h1><b>Docmost</b></h1>
     <p>
@@ -36,8 +40,8 @@ To get started with Docmost, please refer to our [documentation](https://docmost
 </p>
 
 ### License
-Docmost core is licensed under the open-source AGPL 3.0 license.  
-Enterprise features are available under an enterprise license (Enterprise Edition).  
+Docmost core is licensed under the open-source AGPL 3.0 license.
+Enterprise features are available under an enterprise license (Enterprise Edition).
 
 All files in the following directories are licensed under the Docmost Enterprise license defined in `packages/ee/License`.
   - apps/server/src/ee
@@ -59,4 +63,3 @@ Special thanks to;
 <img width="48" alt="Algolia-mark-square-white" src="https://github.com/user-attachments/assets/6ccad04a-9589-4965-b6a1-d5cb1f4f9e94" />
 
 [Algolia](https://www.algolia.com/) for providing full-text search to the docs.
-

@@ -10,6 +10,7 @@ import { WsRedisIoAdapter } from './ws/adapter/ws-redis.adapter';
 import { InternalLogFilter } from './common/logger/internal-log-filter';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyCookie from '@fastify/cookie';
+import helmet from '@fastify/helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(

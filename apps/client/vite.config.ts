@@ -19,6 +19,14 @@ export default defineConfig(({ mode }) => {
   } = loadEnv(mode, envPath, "");
 
   return {
+    server: {
+      proxy: {
+        "/api": {
+          target: APP_URL,
+          changeOrigin: true,
+        },
+      },
+    },
     define: {
       "process.env": {
         APP_URL,
